@@ -12,10 +12,11 @@ elif 조건식:
     문장2
 else:
     문장n
-2. match-case 문
+
+### 2. match-case 문
 특정 변수의 값에 따라 여러 케이스 중 하나를 선택하여 실행합니다.
 
-Python
+```python
 match 변수:
     case 1:
         문장1
@@ -23,20 +24,21 @@ match 변수:
         문장2
     case _:  # 아무 케이스에도 해당하지 않을 때 (기본값)
         문장3
-3. 조건 연산자
+
+### 3. 조건 연산자
 형식: 변수 = ( x if x > y else y)
 
 의미: x > y가 참이면 x, 거짓이면 y를 변수에 대입합니다.
 
-🔁 [chap 4] 반복문 (Loops)
+## 🔁 [chap 4] 반복문 (Loops)
 특정 문장들을 반복해서 실행할 때 사용합니다.
 
-1. 횟수 반복: for 문
+### 1. 횟수 반복: for 문
 반복을 시작하기 전에 반복의 횟수를 미리 아는 경우에 사용합니다. (정해진 횟수만큼 반복)
 
 리스트 활용:
 
-Python
+```python
 for 변수 in 리스트:
     문장1
     문장2
@@ -48,20 +50,22 @@ for 변수 in range(start, stop, step): start <= 변수 < stop (종료값은 포
 
 예시 (역순 반복):
 
-Python
+```python
 for i in range(10, 0, -1):
     print(i, end="")
 # 결과: 10 9 8 7 6 5 4 3 2 1
-2. 조건 반복: while 문
+
+### 2. 조건 반복: while 문
 특정한 조건이 성립되는 동안 계속해서 문장을 반복 실행합니다. (조건이 만족되는 동안 반복)
 
-Python
+```python
 while 조건식:
     문장1
     문장2
 else:
     문장  # 조건식이 거짓이 되어 루프를 빠져나올 때 실행
-3. 무한 루프와 break, continue 🛑
+
+### 3. 무한 루프와 break, continue 🛑
 무한 루프: while True: 처럼 조건이 항상 참인 경우 발생합니다.
 
 break: 현재 반복을 완전히 중단하고 루프를 빠져나옵니다.
@@ -70,7 +74,7 @@ continue: 현재 반복의 남은 부분을 건너뛰고 다음 반복을 시작
 
 활용 예시:
 
-Python
+```python
 while True:
     if 조건:
         break     # 반복을 중단
