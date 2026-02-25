@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+<div>Teachable Machine Image Model</div>
+<button type="button" onclick="init()">Start</button>
+<div id="webcam-container"></div>
+<div id="label-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // the link to your model provided by Teachable Machine export panel
+
+
+    const URL = "./my_model/";
+    let model, webcam, labelContainer, maxPredictions;
+    
+    // 추가: 마지막으로 말한 단어를 저장해서 똑같은 말을 반복하지 않게 함
+    let lastSpoken = ""; 
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true; 
+        webcam = new tmImage.Webcam(200, 200, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        labelContainer.appendChild(document.createElement("div")); // 결과 표시용 한 칸만 생성
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    function speak(text) {
+        // 현재 말하고 있는 중이면 새로운 말을 하지 않음
+        if (window.speechSynthesis.speaking) return;
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        window.speechSynthesis.speak(utterance);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        
+        let currentStatus = "알 수 없음";
+        let confidenceThreshold = 0.95; // 95% 이상 확실할 때만 인정
+
+        // 1. 결과 판정 로직 (글자 출력용)
+        if (prediction[0].probability > confidenceThreshold) {
+            currentStatus = "휴대폰";
+        } else if (prediction[1].probability > confidenceThreshold) {
+            currentStatus = "바세린";
+        }
+
+        // 화면에 현재 상태 표시
+        labelContainer.childNodes[0].innerHTML = "인식 결과: " + currentStatus;
+
+        // 2. 음성 출력 로직
+        // '알 수 없음'이 아니고, 이전 상태와 달라졌을 때만 말하기
+        if (currentStatus !== "알 수 없음" && currentStatus !== lastSpoken) {
+            speak(currentStatus);
+            lastSpoken = currentStatus; // 마지막으로 말한 단어 업데이트
+        } 
+        // 아무것도 없으면 초기화 (다시 물체가 나타났을 때 말하게 하기 위함)
+        else if (currentStatus === "알 수 없음") {
+            lastSpoken = "";
+        }
+    }
+</script>
+
+</body>
+</html>
