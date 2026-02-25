@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI 가위바위보 심판 - 버튼 모드</title>
+    <style>
+        body { font-family: 'Nanum Gothic', sans-serif; text-align: center; background-color: #f8f9fa; transition: 0.5s; padding-top: 50px; }
+        #webcam-container { margin: 20px auto; border: 8px solid #333; width: 400px; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        #label-container { font-size: 20px; color: #555; margin-bottom: 10px; height: 30px; }
+        
+        /* 결과 표시창 */
+        #result-display { 
+            font-size: 32px; font-weight: bold; padding: 30px; margin: 20px auto;
+            width: 80%; max-width: 500px; border-radius: 15px; background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 100px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* 컨트롤 버튼 */
+        button {
+            padding: 15px 40px; font-size: 20px; cursor: pointer; background-color: #007bff;
+            color: white; border: none; border-radius: 50px; transition: 0.3s; font-weight: bold;
+        }
+        button:hover { background-color: #0056b3; transform: scale(1.05); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* 결과 색상 (기존 산만한 배경 전환 대신 영역만 강조) */
+        .win { border: 5px solid #4CAF50 !important; color: #4CAF50; }
+        .lose { border: 5px solid #f44336 !important; color: #f44336; }
+        .draw { border: 5px solid #ffeb3b !important; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🤖 AI 가위바위보 심판</h1>
+    
+    <div id="webcam-container"></div>
+    <div id="label-container">모델을 불러오는 중...</div>
+    
+    <div id="result-display">
+        가위, 바위, 보 중 하나를 내고 <br> 아래 버튼을 눌러주세요!
+    </div>
+
+    <button id="start-btn" onclick="playGame()" disabled>게임 시작!</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/utgyrySxc/"; // 본인의 링크를 넣으세요!
+        let model, webcam, labelContainer, maxPredictions;
+
+        // 초기 설정
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            webcam = new tmImage.Webcam(400, 400, true);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            
+            // 모델 로딩 완료 시 버튼 활성화
+            document.getElementById("start-btn").disabled = false;
+            labelContainer.innerHTML = "준비 완료! 손 모양을 보여주세요.";
+        }
+
+        async function loop() {
+            webcam.update();
+            // 실시간 인식은 하되, 화면에 '현재 인식 상태'만 짧게 표시 (게임 로직은 실행 안 함)
+            await showCurrentPose();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function showCurrentPose() {
+            const prediction = await model.predict(webcam.canvas);
+            let bestMatch = "";
+            let highestProb = 0;
+
+            for (let i = 0; i < maxPredictions; i++) {
+                if(prediction[i].probability > highestProb) {
+                    highestProb = prediction[i].probability;
+                    bestMatch = prediction[i].className;
+                }
+            }
+            if (highestProb > 0.8) {
+                labelContainer.innerHTML = `현재 상태: [${bestMatch}]`;
+            }
+        }
+
+        // [핵심] 사용자가 버튼을 눌렀을 때만 실행되는 함수
+        async function playGame() {
+            const display = document.getElementById("result-display");
+            display.innerHTML = "안 내면 진 거... 가위, 바위, 보!";
+            display.className = ""; // 이전 스타일 초기화
+
+            // 버튼 잠시 비활성화 (연타 방지)
+            const btn = document.getElementById("start-btn");
+            btn.disabled = true;
+
+            // 1초 뒤에 현재의 손모양을 판정 (애니메이션 효과를 위함)
+            setTimeout(async () => {
+                const prediction = await model.predict(webcam.canvas);
+                let userChoice = "";
+                let highestProb = 0;
+
+                for (let i = 0; i < maxPredictions; i++) {
+                    if(prediction[i].probability > highestProb) {
+                        highestProb = prediction[i].probability;
+                        userChoice = prediction[i].className;
+                    }
+                }
+
+                if (userChoice === "빈 손" || highestProb < 0.7) {
+                    display.innerHTML = "손이 잘 보이지 않아요! <br> 다시 시도해 주세요.";
+                } else {
+                    const choices = ["가위", "바위", "보"];
+                    const computerChoice = choices[Math.floor(Math.random() * 3)];
+                    
+                    let resultText = `나: ${userChoice} vs 컴퓨터: ${computerChoice}<br>`;
+
+                    if (userChoice === computerChoice) {
+                        display.innerHTML = resultText + "무승부입니다!";
+                        display.className = "draw";
+                    } else if (
+                        (userChoice === "바위" && computerChoice === "가위") ||
+                        (userChoice === "가위" && computerChoice === "보") ||
+                        (userChoice === "보" && computerChoice === "바위")
+                    ) {
+                        display.innerHTML = resultText + "축하합니다! 승리하셨습니다!";
+                        display.className = "win";
+                    } else {
+                        display.innerHTML = resultText + "아쉽네요. 패배하셨습니다.";
+                        display.className = "lose";
+                    }
+                }
+                btn.disabled = false; // 판정 완료 후 버튼 다시 활성화
+                btn.innerHTML = "한 번 더 하기!";
+            }, 800); 
+        }
+
+        init();
+    </script>
+</body>
+</html>
